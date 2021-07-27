@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "IOTA Parking PoC",
+    "slug": "IOTA-Parking-PoC",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "icon": "./assets/logo.png"
+    },
+    "android": {
+      "package": "noman.cui.itrace",
+      "icon": "./assets/logo.png"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
