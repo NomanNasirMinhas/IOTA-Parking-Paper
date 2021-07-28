@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { Rating } from "react-native-ratings";
 import { Animated, Text, View, Image, StyleSheet } from "react-native";
 import {
   Card,
@@ -21,7 +22,7 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import * as Location from "expo-location";
 
 export default ({ navigation, route }) => {
-  const { seed, address, profile, nearby,last } = route.params;
+  const { seed, address, profile, nearby, last, hash } = route.params;
   // console.log("Last", last);
   // const [seed, setSeed] = useState("");
   const [seedInfo, setSeedInfo] = useState("");
@@ -41,6 +42,16 @@ export default ({ navigation, route }) => {
   const [nearby_pos, setNearbyPos] = useState(false);
   const [bookSpot, setBookSpot] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState("");
+  const [showRating, setShowRating] = useState(false);
+
+  const toggleRating = () => {
+    setShowRating(!showRating);
+  };
+
+  const ratingChanged = (newRating) => {
+    console.log(newRating);
+  };
+
   const toggleOverlay = () => {
     setVisible(!visible);
   };
@@ -88,7 +99,11 @@ export default ({ navigation, route }) => {
       <ScrollView>
         <View>
           <Text style={[styles.text, { fontSize: 40 }]}>IOTA Parking</Text>
-          <Text style={[styles.text, { fontSize: 20 }]}>{last == false ? "No Active Booking": `1 Active Booking for ${last.response.areaName} of ${last.response.providerName} booked at ${last.response.bookingTime}`}</Text>
+          <Text style={[styles.text, { fontSize: 20 }]}>
+            {last == false
+              ? "No Active Booking"
+              : `1 Active Booking for ${last.response.areaName} of ${last.response.providerName} booked at ${last.response.bookingTime}`}
+          </Text>
           <View>
             <Button
               title="Book A Spot"
@@ -104,8 +119,50 @@ export default ({ navigation, route }) => {
               iconRight
               onPress={() => setBookSpot(!bookSpot)}
               buttonStyle={[styles.button]}
-              disabled = {(last == false)? false:true}
+              disabled={last == false ? false : true}
             />
+            {last != false && (
+              <View>
+                <Button
+                  title="Checkout"
+                  icon={
+                    <Icon
+                      name="qrcode"
+                      size={20}
+                      color="white"
+                      solid
+                      style={{ position: "absolute", right: 20 }}
+                    />
+                  }
+                  iconRight
+                  onPress={async () => {
+                    try {
+                      await fetch(
+                        "https://iota-parking.herokuapp.com/changePresDescription/",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            txHash: hash,
+                            address: address,
+                            status: false,
+                          }),
+                        }
+                      );
+                      setShowRating(true);
+                      // await AsyncStorage.clear();
+                      // navigation.navigate("Welcome");
+                    } catch (e) {
+                      console.log("Error in Checkout = ", e);
+                    }
+                  }}
+                  buttonStyle={[styles.button, { backgroundColor: "orange" }]}
+                  // disabled={last == false ? false : true}
+                />
+              </View>
+            )}
             {nearby != false && bookSpot && (
               <View>
                 <Text style={styles.text}>Near By Areas</Text>
@@ -136,32 +193,33 @@ export default ({ navigation, route }) => {
                           // let expire = new Date(now);
                           // expire.setMinutes(now.getMinutes() + 15)
                           setBookSpot(v.areaName);
-                          try
-                          {
+                          try {
                             let now = new Date();
                             await fetch(
-                            "https://iota-parking.herokuapp.com/sendTx/",
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                seed: seed,
-                                address: address,
-                                txType: "booking",
-                                Data: JSON.stringify({
-                                  bookingTime: now,
-                                  vehicleID: idnum,
-                                  areaName: v.areaName,
-                                  providerName: v.providerName,
+                              "https://iota-parking.herokuapp.com/sendTx/",
+                              {
+                                method: "POST",
+                                headers: {
+                                  "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                  seed: seed,
+                                  address: address,
+                                  txType: "booking",
+                                  Data: JSON.stringify({
+                                    bookingTime: now,
+                                    vehicleID: idnum,
+                                    areaName: v.areaName,
+                                    providerName: v.providerName,
+                                  }),
                                 }),
-                              }),
-                            }
-                          );
-                          console.log("Data Added")
-                        }catch(e){
-                            console.log(e)
+                              }
+                            );
+                            console.log("Data Added");
+                            await AsyncStorage.clear();
+                            navigation.navigate("Welcome");
+                          } catch (e) {
+                            console.log(e);
                           }
                         }}
                         buttonStyle={[styles.button, { width: 100 }]}
@@ -184,28 +242,32 @@ export default ({ navigation, route }) => {
               />
             }
             iconRight
-            onPress={async() => {
-              var response = await fetch(`https://iota-parking.herokuapp.com/getAllHash/${address}&${0}&booking`);
+            onPress={async () => {
+              var response = await fetch(
+                `https://iota-parking.herokuapp.com/getAllHash/${address}&${0}&booking`
+              );
               response = await response.json();
-              if (response == false){
+              if (response == false) {
                 alert("No Previous Bookings");
-              }
-              else{
+              } else {
                 let history = [];
                 for (var i = 0; i < response.length; i++) {
-                  var responseTx = await fetch(`https://iota-parking.herokuapp.com/getTx/${response[i].toString()}`);
+                  var responseTx = await fetch(
+                    `https://iota-parking.herokuapp.com/getTx/${response[
+                      i
+                    ].toString()}`
+                  );
                   var resObjTx = await responseTx.json();
                   if (resObjTx.response !== false) {
-                      console.log(resObjTx.response)
-                      history.push(resObjTx.response)
+                    console.log(resObjTx.response);
+                    history.push(resObjTx.response);
                   }
-              }
-              if(history.length > 0){
-                navigation.navigate('History', {history: history});
-              }
-              else{
-                alert("No Valid Bookings");
-              }
+                }
+                if (history.length > 0) {
+                  navigation.navigate("History", { history: history });
+                } else {
+                  alert("No Valid Bookings");
+                }
               }
             }}
             buttonStyle={[styles.button]}
@@ -266,7 +328,19 @@ export default ({ navigation, route }) => {
 
           <View style={{ height: 20 }}></View>
           <Overlay isVisible={visible} onBackdropPress={toggleOverlay}>
-            <QRCode logoSize={400} value={address.toString()}/>
+            <QRCode logoSize={400} value={address.toString()} />
+          </Overlay>
+
+          <Overlay isVisible={showRating} onBackdropPress={toggleRating}>
+            <Rating
+              // showRating
+              onFinishRating={async (rating) => {
+                console.log("Rating is: " + rating);
+                // await AsyncStorage.clear();
+                // navigation.navigate("Welcome");
+              }}
+              style={{ padding: 10 }}
+            />
           </Overlay>
 
           <Overlay isVisible={showProfile} onBackdropPress={toggleProfile}>

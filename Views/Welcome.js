@@ -80,19 +80,19 @@ export default ({ navigation }) => {
   if (status !== 'granted') {
     alert('Permission to access location was denied');
   }
-  await fetch(`https://iota-parking.herokuapp.com/`); 
+  await fetch(`https://iota-parking.herokuapp.com/`);
 })();
 }, []);
-  
+
 
   const handleAddData = async () => {
     try {
       setProcessing(true);
       // setInsStatus(0);
-      let res = await fetch(`https://iota-parking.herokuapp.com/addProviders/`); 
+      let res = await fetch(`https://iota-parking.herokuapp.com/addProviders/`);
       res = await res.json()
       console.log("Data Added=", res);
-     
+
       setProcessing(false);
     } catch (e) {
       setProcessing(false);
@@ -167,7 +167,7 @@ export default ({ navigation }) => {
       }
     }
       // console.log(tx.response.LogType);
-        navigation.navigate('Home', {seed: address[0], address:address[1], profile:profileData[1].Profile, nearby: nearbyLoc, last:tx});
+        navigation.navigate('Home', {seed: address[0], address:address[1], profile:profileData[1].Profile, nearby: nearbyLoc, last:tx, hash:obj});
 
       }
       else{
@@ -219,7 +219,7 @@ export default ({ navigation }) => {
             IOTA Parking
           </Text>
 
-       
+
           {/* <View> */}
             <Input
               // style={styles.input}
@@ -232,7 +232,7 @@ export default ({ navigation }) => {
               onChangeText={(value) => setInID(value)}
             />
             {/* </View> */}
-           
+
           <View style={styles.btnContainer}>
             <Button
               icon={
