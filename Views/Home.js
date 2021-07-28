@@ -22,7 +22,8 @@ import Icon from "react-native-vector-icons/FontAwesome5";
 import * as Location from "expo-location";
 
 export default ({ navigation, route }) => {
-  const { seed, address, profile, nearby, last, hash } = route.params;
+  const { seed, address, profile, nearby, last, hash, time, credit } =
+    route.params;
   // console.log("Last", last);
   // const [seed, setSeed] = useState("");
   const [seedInfo, setSeedInfo] = useState("");
@@ -99,6 +100,12 @@ export default ({ navigation, route }) => {
       <ScrollView>
         <View>
           <Text style={[styles.text, { fontSize: 40 }]}>IOTA Parking</Text>
+          <Text style={[styles.text, { fontSize: 30 }]}>Credit: {credit}</Text>
+          {credit <= 0 && (
+            <Text style={[styles.text, { fontSize: 10 }]}>
+              Please recharge first to Book a Spot
+            </Text>
+          )}
           <Text style={[styles.text, { fontSize: 20 }]}>
             {last == false
               ? "No Active Booking"
@@ -119,7 +126,7 @@ export default ({ navigation, route }) => {
               iconRight
               onPress={() => setBookSpot(!bookSpot)}
               buttonStyle={[styles.button]}
-              disabled={last == false ? false : true}
+              disabled={last == false && credit > 0 ? false : true}
             />
             {last != false && (
               <View>
@@ -151,7 +158,36 @@ export default ({ navigation, route }) => {
                           }),
                         }
                       );
+                      let initialTime = Date.parse(last.response.bookingTime);
+                      // console.log("Time difference = ", time_diff);
+                      let now = new Date();
+                      // console.log("Time Now = ", now);
+                      let time_diff = now.getTime() - initialTime;
+                      console.log("Time difference = ", time_diff);
+                      let credit_to_deduct = (time_diff / 100000).toFixed(2);
+                      let new_credit = credit - credit_to_deduct;
+                      console.log("New Credit = ", new_credit);
+                      await fetch(
+                        "https://iota-parking.herokuapp.com/sendTx/",
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                            seed: seed,
+                            address:
+                              address,
+                            txType: "credit",
+                            Data: JSON.stringify({
+                              credit: new_credit,
+                            }),
+                          }),
+                        }
+                      );
+                      console.log("Successfully Updated Credit");
                       setShowRating(true);
+
                       // await AsyncStorage.clear();
                       // navigation.navigate("Welcome");
                     } catch (e) {
@@ -335,9 +371,27 @@ export default ({ navigation, route }) => {
             <Rating
               // showRating
               onFinishRating={async (rating) => {
-                console.log("Rating is: " + rating);
-                // await AsyncStorage.clear();
-                // navigation.navigate("Welcome");
+                try {
+                  console.log("Rating is: " + rating);
+                  console.log("Last : " + last);
+                  await fetch(
+                    "https://iota-parking.herokuapp.com/changeRating/",
+                    {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        provider: last.providerName,
+                        rating: rating,
+                      }),
+                    }
+                  );
+                  await AsyncStorage.clear();
+                  navigation.navigate("Welcome");
+                } catch (e) {
+                  console.log(e);
+                }
               }}
               style={{ padding: 10 }}
             />

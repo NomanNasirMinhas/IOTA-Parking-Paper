@@ -80,10 +80,36 @@ export default ({ navigation }) => {
   if (status !== 'granted') {
     alert('Permission to access location was denied');
   }
+  setProcessing(true);
   await fetch(`https://iota-parking.herokuapp.com/`);
+  setProcessing(false);
+
+
 })();
 }, []);
 
+const addCredit = async () => {
+  setProcessing(true);
+  await fetch(
+    "https://iota-parking.herokuapp.com/sendTx/",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        seed: "XANZDGBBKGI9PAAPLU9GEAKWEG9GNEUEQDLXRQAXBTRWTQ9L99JJ9WNPEZXBSJ9UJYEHNZDJHAB99INLI",
+        address: "WE9WZMIJRCCYHQAGHDASCRXOOOTOIYNIDEKIBXDSDOHLIOD9UZBIMDCETNEYZKYNDK9ZJJ9JDQEX9SYPX",
+        txType: "credit",
+        Data: JSON.stringify({
+          credit: 100
+        }),
+      }),
+    }
+  );
+  console.log("Credit Added");
+  setProcessing(false);
+}
 
   const handleAddData = async () => {
     try {
@@ -131,15 +157,35 @@ export default ({ navigation }) => {
           `https://iota-parking.herokuapp.com/getLastTx/${address[1]}&booking`
       );
       obj = await obj.json();
+
+      var credit = await fetch(
+        `https://iota-parking.herokuapp.com/getLastTx/${address[1]}&credit`
+    );
+    credit = await credit.json();
+        if(credit == false){
+          console.log("Credit = ", credit);
+          credit = 0;
+        }
+        else{
+          var credit_tx = await fetch(
+            `https://iota-parking.herokuapp.com/getTx/${credit}`
+        );
+        credit_tx = await credit_tx.json();
+        console.log("Credit Obj = ", credit_tx);
+        credit = Number.parseFloat(credit_tx.response.credit);
+        }
+      let checkTime;
       if (obj == false)
       {
         var tx = false;
+        checkTime = false;
       }
-      else{var tx = await fetch(
+      else{
+        var tx = await fetch(
           `https://iota-parking.herokuapp.com/getTx/${obj}`
       );
       tx = await tx.json();
-      let checkTime = Date.parse(tx.response.bookingTime);
+      checkTime = Date.parse(tx.response.bookingTime);
       // console.log("Time difference = ", time_diff);
       let now = new Date();
       // console.log("Time Now = ", now);
@@ -167,7 +213,7 @@ export default ({ navigation }) => {
       }
     }
       // console.log(tx.response.LogType);
-        navigation.navigate('Home', {seed: address[0], address:address[1], profile:profileData[1].Profile, nearby: nearbyLoc, last:tx, hash:obj});
+        navigation.navigate('Home', {seed: address[0], address:address[1], profile:profileData[1].Profile, nearby: nearbyLoc, last:tx, hash:obj, time: checkTime, credit:credit});
 
       }
       else{
@@ -308,6 +354,29 @@ export default ({ navigation }) => {
               // titleStyle={styles.btnText}
               onPress={
                 () => navigation.navigate("Scan")
+              }
+            ></Button>
+
+          </View>
+
+          <View style={styles.btnContainer}>
+            <Button
+              icon={
+                <Icon
+                  name="plus"
+                  size={20}
+                  color="white"
+                  solid
+                  style={{ position: "absolute", right: 20 }}
+                />
+              }
+              iconRight
+              buttonStyle={styles.button}
+              title="Add Credit"
+              // disabled = {true}
+              // titleStyle={styles.btnText}
+              onPress={addCredit
+                // () => navigation.navigate("Login")
               }
             ></Button>
 
